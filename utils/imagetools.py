@@ -1,3 +1,7 @@
+"""
+Functions to visualize images/losses
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -6,20 +10,41 @@ import cv2
 
 
 def plot_images(
-    images,
-    titles=None,
-    rows=1,
-    show_range=True,
-    figsize=(12, 3),
-    fontsize=10,
-    save_path=None,
-):
+    images: list,
+    titles: list | None = None,
+    rows: int = 1,
+    show_range: bool = True,
+    figsize: tuple[int, int] = (12, 8),
+    fontsize: int = 10,
+    save_path: str | None = None,
+) -> None:
+    """
+    Plot several images.
+    Parameters:
+        images (list):
+            List of images.
+            Can be torch tensors or numpy arrays.
+        titles (list):
+            List of titles (correspondance to `images`).
+            If None, images will not have titles.
+            Default is None.
+        rows (int):
+            Number of rows.
+            Default is `1`.
+        figsize (tuple):
+            Figure size.
+            Default is `(12, 8)`.
+        save_path (str):
+            Path to save output image
+            If None, image will not be saved.
+            Default is None.
+    """
     cols = len(images) // rows
-    fig, axs = plt.subplots(rows, cols, figsize=figsize)
+    _, axs = plt.subplots(rows, cols, figsize=figsize)
     axs = np.atleast_1d(axs).ravel()
 
     for i, img in enumerate(images):
-        # Приводим к numpy и float32
+        # convert to numpy array
         if isinstance(img, torch.Tensor):
             arr = img.detach().cpu().to(torch.float32).numpy()
         elif isinstance(img, np.ndarray):
@@ -27,7 +52,7 @@ def plot_images(
         else:
             arr = np.array(img, dtype=np.float32)
 
-        # Удаляем лишние каналы, если есть
+        # reduce channels
         arr = arr.squeeze()
         if arr.ndim == 3 and arr.shape[0] in (1, 3):  # CHW -> HWC
             arr = arr.transpose(1, 2, 0)
@@ -53,24 +78,38 @@ def plot_images(
 
 def add_psf_on_image(
     img: torch.Tensor, psf: torch.Tensor, part_size: tuple[int, int] = (100, 100)
-) -> np.ndarray:
+) -> torch.ndarray:
     """
-    Add small PSF fragment on image
+    Add small PSF fragment on image.
+    Parameters:
+        img (Tensor):
+            Source image.
+        psf (Tensor):
+            Source PSF.
+        part_size (tuple):
+            Size of PSF fragment on image.
+            Default is `(100, 100)`.
+    Returns:
+        out (Tensor):
+            Output images with PSF fragments.
     """
+    # clone source
     img_copy = img.clone().detach()
     psf_copy = psf.clone().detach()
+
+    # centering & normalizing PSF
     for i in range(psf_copy.shape[0]):
         psf_copy[i] = torch.fft.fftshift(psf_copy[i]) / psf_copy[i].max()
-    # psf_copy = torch.fft.fftshift(psf_copy, dim=1) / psf_copy.amax(dim=1, keepdim=True)
 
+    # locate fragment
     h, w = psf_copy.shape[2], psf_copy.shape[3]
     f_h, f_w = part_size
     x_, y_ = int((h - f_h) / 2), int((w - f_w) / 2)
 
+    # add fragment on image
     fragment = psf_copy[:, :, x_ : x_ + f_h, y_ : y_ + f_w]
-    # plot_images([psf_copy, fragment])
-
     img_copy[:, :, :f_h, w - f_w :] = fragment
+
     return img_copy
 
 
@@ -178,21 +217,37 @@ def save_image(
     cv2.imwrite(title, src_np)
 
 
-def linear_normalize(x: torch.Tensor) -> torch.Tensor:
-    return (x - x.min()) / (x.max() - x.min() + 1e-8)
-
-
 def plot_loss(
-    readpath="logs/metrics.json", savepath="logs/loss_plot.png", log_scale=True
+    read_path: str = "logs/metrics.json",
+    save_path: str = "logs/loss_plot.png",
+    figsize: tuple[int, int] = (12, 8),
+    log_scale: bool = True,
 ):
-    with open(readpath, "r", encoding="utf-8") as f:
+    """
+    Plot train/val loss using information from json.
+    Parameters:
+        read_path (str):
+            Path to json file with train/val data.
+            Default is `"logs/metrics.json"`.
+        read_path (str):
+            Path to save graphics.
+            Default is `"logs/loss_plot.png"`.
+        figsize (tuple):
+            Figure size.
+            Default is `(12, 8)`.
+        log_scale (bool):
+            Is a flag.
+            If True, show losses in log scale.
+            Default is True.
+    """
+    with open(read_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     epochs = data["metrics"]["epoch"]
     train_loss = data["metrics"]["train_loss"]
     val_loss = data["metrics"]["val_loss"]
 
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=figsize)
 
     if log_scale:
         train_loss = np.log(train_loss)
@@ -226,7 +281,7 @@ def plot_loss(
     plt.xticks(epochs)
 
     plt.tight_layout()
-    plt.savefig(savepath, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
 

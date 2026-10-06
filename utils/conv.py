@@ -9,7 +9,6 @@ import torch.nn.functional as F
 
 import torch.fft as fft
 
-# from olimp.processing import fft_conv as pyolimp_conv
 from olimp.processing import resize_kernel
 
 from .utils import fftshift
@@ -26,11 +25,12 @@ def conv(x: Tensor, y: Tensor, spatial: bool = True) -> Tensor:
     Parameters:
         x (Tensor):
             First tensor.
-            Must have shape `(B, C, H, W)`.
+            Shape is `(B, C, H, W)`.
         y (Tensor):
             Second tensor.
-            Must have shape `(B, N, H, W)`.
+            Shape is `(B, N, H, W)`.
         spatial (bool):
+            Is a flag.
             If `True`, considers that tensors given in spatial domain.
             Default is `True`.
 
@@ -65,11 +65,10 @@ def padding(input: Tensor, alpha: float = 0.03, mode: str = "replicate") -> Tens
             Input tensor
         alpha (float):
             The proportion of size increase.
-            Must be in range from 0 to 1.
+            Value range from 0 to 1.
             Default is `0.03`.
         mode (str):
-            Padding type.
-            Can be: `constant` (pads to 0), `reflect`, `replicate`, `circular`.
+            Padding type: `constant` (pads to 0), `reflect`, `replicate`, `circular`.
             Default is `"replicate"`.
     Returns:
         out (Tensor):
@@ -121,29 +120,30 @@ def fft_conv(
     Convolution with padding to avoid board effects
     Parameters:
         image (Tensor):
-            Source image with shape (B, C, H, W).
+            Source image.
+            Shape is (B, C, H, W).
         psf (Tensor):
-            Source PSF with shape (B, 1, H, W).
+            Source PSF.
+            Shape is (B, 1, H, W).
         alpha (float):
             Boundary expansion parameter (see `padding`).
             Must be in range from 0 to 1.
             Default is `0.03`.
         mode (str):
-            Padding type.
-            Can be: `constant` (pads to 0), `reflect`, `replicate`, `circular`.
+            Padding type: `constant` (pads to 0), `reflect`, `replicate`, `circular`.
             Default is `"replicate"`.
     """
     _, _, h, w = image.shape
 
-    # Увеличиваем ядро
+    # expanding kernel
     pad_psf = padding(fftshift(psf), alpha, "constant")
     pad_psf = fftshift(pad_psf)
     pad_image = padding(image, alpha, mode)
 
-    # Свертка расширенного ядра и паддинга
+    # st
     convolved = conv(pad_image, pad_psf)
 
-    # Обрезка до нужного размера
+    # crop to size
     return cropping(convolved, (h, w), alpha)
 
 
@@ -156,6 +156,9 @@ def decrease_kernel(psf: Tensor, factor: float = 0.5) -> Tensor:
         factor (float):
             Decrease scale.
             Default is `0.5`.
+    Returns:
+        out (Tensor):
+            PSF decreased in `factor` times.
     """
 
     b, _, h, w = psf.shape

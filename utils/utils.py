@@ -1,6 +1,7 @@
 """
 Various auxiliary functions
 """
+
 import os
 import time
 

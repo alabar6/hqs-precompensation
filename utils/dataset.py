@@ -44,13 +44,15 @@ class PreCompensationDataset(Dataset):
                 Random seed to choose images.
                 Default is 42.
             gray (bool):
+                Is a flag.
                 If True, images will be converted to grayscale.
                 Default is False.
             imagenet (bool):
-                Special flag.
+                Is a flag.
                 If True, cuts off the borders of the image, followed by bilinear interpolation to preserve the size.
                 Default is False.
             return_names (bool):
+                Is a flag.
                 If True, return names of PSF and Image in each pair.
                 Defalut is False.
             transform (torchvison.transforms):
