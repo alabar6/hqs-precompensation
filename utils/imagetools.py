@@ -78,7 +78,7 @@ def plot_images(
 
 def add_psf_on_image(
     img: torch.Tensor, psf: torch.Tensor, part_size: tuple[int, int] = (100, 100)
-) -> torch.ndarray:
+) -> torch.Tensor:
     """
     Add small PSF fragment on image.
     Parameters:
