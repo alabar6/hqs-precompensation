@@ -1,3 +1,7 @@
+"""
+Train Model
+"""
+
 import matplotlib.pyplot as plt
 import os
 import os.path as osp
@@ -6,15 +10,9 @@ import json
 from tqdm import tqdm
 
 import torch
-# from torch import Tensor
 from torch.utils.data import DataLoader
-# from torchvision import transforms
-# import torch.nn.functional as F
 
-# from olimp.processing import fft_conv as pyolimp_conv
-# from olimp.precompensation.basic.huang import huang
-
-from utils.filters import sobel, grad
+from utils.filters import grad
 from utils.conv import fft_conv
 from utils.imagetools import plot_images, add_psf_on_image, plot_loss
 from utils.loss import PreCompensationLoss
@@ -24,6 +22,7 @@ from models.hqs_pc import HQS_PC
 
 
 def plot_betas(betas: list, save_path: str) -> None:
+    """Plot list of beta's"""
     plt.plot(betas, ".-", label=r"$\beta$")
     plt.grid()
     plt.legend()
@@ -32,10 +31,10 @@ def plot_betas(betas: list, save_path: str) -> None:
     plt.close()
 
 
-def train(model, 
-          train_dataset, 
-          val_dataset,
-          criterion,
+def train(model: HQS_PC, 
+          train_dataset: PreCompensationDataset, 
+          val_dataset: PreCompensationDataset,
+          criterion: PreCompensationLoss,
           device: str = "cuda",
           lr: float = 1e-2,
           n_epochs: int = 10,
@@ -43,7 +42,7 @@ def train(model,
           shuffle: bool = True,
           verbose: bool = True,
           save_dir: str = "hqs/results"):
-    """Train beta_k parameters"""
+    """Train HQS-PC parameters"""
     model.to(device)
 
     checkpoints_path = osp.join(save_dir, "checkpoints")
@@ -144,7 +143,7 @@ def train(model,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', default="data/configs/train_config.json")
-    parser.add_argument('--save_results_path', default='/home/devel/hqs/results')
+    parser.add_argument('--save_path', default='/home/devel/hqs/results')
     parser.add_argument('--seed', type=int, default=12345)
     parser.add_argument('--verbose', type=bool, default=True)
     parser.add_argument('--device', type=str, default="cuda")
@@ -188,4 +187,4 @@ if __name__ == "__main__":
           **prms["train"],
           shuffle=False,
           verbose=opt.verbose,
-          save_dir=opt.save_results_path)
+          save_dir=opt.save_path)
